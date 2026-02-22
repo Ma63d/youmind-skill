@@ -102,7 +102,18 @@ Set up Youmind authentication
 
 A browser opens, you complete login, and auth state is stored locally.
 
-### 3. Add your board
+### 3. Create your knowledge base
+
+Go to [youmind.com](https://youmind.com/) -> Create board -> Add your sources:
+
+- 📄 PDFs, docs, and notes
+- 🔗 Websites and GitHub links
+- 🎥 YouTube/video links
+- 📚 Multiple sources in one board
+
+Share: `Board settings -> Share -> Anyone with link -> Copy`
+
+### 4. Add your board
 
 Option A: Smart Add (recommended)
 
@@ -116,7 +127,7 @@ Option B: Manual add
 Add this Youmind board to my library: https://youmind.com/boards/...
 ```
 
-### 4. Start querying
+### 5. Start querying
 
 ```text
 Ask my Youmind board: summarize the key technical decisions
