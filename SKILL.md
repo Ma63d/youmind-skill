@@ -127,24 +127,24 @@ Use this when user says things like:
 - "保存这个网页到YouMind"
 - "add this URL to my board"
 
-Recommended execution pattern:
+Recommended execution pattern (single-pass, fast path):
 
 ```bash
-# Step 1: send a strict add-only command
+# Send a strict add-only command
 python scripts/run.py ask_question.py \
   --board-url "https://youmind.com/boards/..." \
   --question "只执行一个动作：把这个链接添加到当前board资料库 https://example.com 。不要总结，不要列清单。完成后只回复：ADD_OK。"
-
-# Step 2: verify it is actually present (best-effort confirmation)
-python scripts/run.py ask_question.py \
-  --board-url "https://youmind.com/boards/..." \
-  --question "请确认刚才添加的链接是否已保存成功：https://example.com。如果成功，请回复 CONFIRMED。"
 ```
 
 Important:
 - This is a chat-driven write action (not an official add API).
-- Always perform a follow-up verification question.
-- If verification fails, retry once with `--show-browser`.
+- Prefer single-pass result parsing for speed/token savings.
+- Treat it as success if response contains clear success markers like:
+  - `ADD_OK`
+  - `资料已保存`
+  - `资料已添加`
+- Only run a second verification ask if the reply is ambiguous or indicates failure.
+- If needed, retry once with `--show-browser`.
 
 ## Follow-Up Rule
 
