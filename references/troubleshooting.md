@@ -8,6 +8,7 @@
 | Redirected to sign-in during query | Run `python scripts/run.py auth_manager.py setup` |
 | No chat input found | Retry with `--show-browser` and update selectors in `scripts/config.py` |
 | Timeout waiting for answer | Ask a shorter question or increase selector wait logic |
+| `ProcessSingleton` / `SingletonLock` error | Close stuck Chrome/skill process and retry (skill now auto-cleans stale lock and retries once) |
 | Board not found | `python scripts/run.py board_manager.py list` |
 
 ## Authentication Problems
@@ -33,6 +34,14 @@ If browser hangs:
 pkill -f chrome
 python scripts/run.py cleanup_manager.py --confirm --preserve-library
 python scripts/run.py auth_manager.py setup
+```
+
+If you still see profile lock errors:
+
+```bash
+rm -f data/browser_state/browser_profile/SingletonLock
+rm -f data/browser_state/browser_profile/SingletonCookie
+rm -f data/browser_state/browser_profile/SingletonSocket
 ```
 
 ## Selector Drift (Most Common)

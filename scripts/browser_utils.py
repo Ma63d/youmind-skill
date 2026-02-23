@@ -6,6 +6,7 @@ Handles browser launch configuration, cookie injection, and human-like actions.
 import json
 import random
 import time
+from pathlib import Path
 from typing import Optional
 
 from patchright.sync_api import BrowserContext, Page, Playwright
@@ -28,7 +29,24 @@ class BrowserFactory:
         We still inject cookies from state.json because session cookies may
         not always persist reliably across launches.
         """
-        context = playwright.chromium.launch_persistent_context(
+        try:
+            context = BrowserFactory._launch(playwright, headless=headless, user_data_dir=user_data_dir)
+            BrowserFactory._inject_cookies(context)
+            return context
+        except Exception as e:
+            message = str(e)
+            # Auto-recover from stale Chrome profile singleton lock.
+            if "ProcessSingleton" in message or "SingletonLock" in message:
+                print("  ⚠️ Detected stale Chrome profile lock. Cleaning lock files and retrying once...")
+                BrowserFactory._clear_singleton_locks(user_data_dir)
+                context = BrowserFactory._launch(playwright, headless=headless, user_data_dir=user_data_dir)
+                BrowserFactory._inject_cookies(context)
+                return context
+            raise
+
+    @staticmethod
+    def _launch(playwright: Playwright, headless: bool, user_data_dir: str) -> BrowserContext:
+        return playwright.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
             channel="chrome",
             headless=headless,
@@ -38,8 +56,17 @@ class BrowserFactory:
             args=BROWSER_ARGS,
         )
 
-        BrowserFactory._inject_cookies(context)
-        return context
+    @staticmethod
+    def _clear_singleton_locks(user_data_dir: str):
+        profile_dir = Path(user_data_dir)
+        lock_names = ["SingletonLock", "SingletonCookie", "SingletonSocket"]
+        for name in lock_names:
+            path = profile_dir / name
+            try:
+                if path.exists():
+                    path.unlink()
+            except Exception as e:
+                print(f"  ⚠️ Could not remove lock file {path}: {e}")
 
     @staticmethod
     def _inject_cookies(context: BrowserContext):
