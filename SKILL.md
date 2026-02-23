@@ -23,6 +23,14 @@ python scripts/run.py board_manager.py list
 python scripts/run.py ask_question.py --question "..."
 ```
 
+## Critical Rule: No "Agent Mode" Toggle
+
+For this skill, do NOT invent or implement any "switch to Agent mode" step.
+- There is no dedicated UI mode toggle required for add/query actions.
+- Do not patch `ask_question.py` to add `_try_switch_agent_mode` or similar behavior.
+- For add-material tasks, use normal chat command execution and parse success markers (`ADD_OK`, `资料已保存`, `资料已添加`).
+- If add fails, retry or use `--show-browser`; do not modify skill code during task execution.
+
 ## Workflow
 
 ### 0. Smart Add (Recommended)

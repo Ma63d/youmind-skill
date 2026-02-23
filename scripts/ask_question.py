@@ -2,6 +2,9 @@
 """
 Simple Youmind question interface (stateless mode).
 Each question opens a fresh browser context, asks once, then exits.
+
+Important: this flow does not require any UI "Agent mode" switching.
+Submit query directly and evaluate the returned response text.
 """
 
 import argparse
