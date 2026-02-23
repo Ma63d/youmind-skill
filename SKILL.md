@@ -34,13 +34,13 @@ python scripts/run.py board_manager.py smart-add \
   --url "https://youmind.com/boards/..."
 ```
 
-`smart-add` defaults to two-pass discovery (summary -> structured JSON).
-If needed, force one-pass:
+`smart-add` defaults to single-pass structured discovery (fast path).
+If needed, force two-pass:
 
 ```bash
 python scripts/run.py board_manager.py smart-add \
   --url "https://youmind.com/boards/..." \
-  --single-pass
+  --two-pass
 ```
 
 If auto-discovery quality is poor for a specific board, use two-step fallback:

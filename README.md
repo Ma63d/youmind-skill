@@ -146,8 +146,8 @@ What it does:
 4. Activates it by default
 
 Discovery modes:
-- Two-pass (default): summary then structured JSON extraction
-- Single-pass: one structured extraction query
+- Single-pass (default): one structured extraction query
+- Two-pass (`--two-pass`): summary then structured extraction
 
 If extraction quality is poor, the workflow falls back to summary-based metadata generation.
 

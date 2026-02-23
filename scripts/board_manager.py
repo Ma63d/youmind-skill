@@ -284,13 +284,14 @@ class BoardLibrary:
         activate: bool = True,
         prompt: Optional[str] = None,
         json_prompt: Optional[str] = None,
-        single_pass: bool = False,
+        single_pass: bool = True,
         allow_duplicate_url: bool = False,
     ) -> Dict[str, Any]:
         """
         Discover board content via chat and add it automatically.
 
-        Default mode uses two-pass discovery:
+        Default mode uses single-pass structured discovery (fast path).
+        Optional two-pass mode:
         1) summary discovery
         2) strict JSON extraction
         """
@@ -316,23 +317,8 @@ class BoardLibrary:
         summary_answer = None
         structured_answer = None
 
-        if single_pass:
-            structured_prompt = (
-                json_prompt
-                or '请阅读当前board，返回严格JSON（不要额外文字）：'
-                ' {"name":"简洁名称","description":"1-2句描述","topics":["主题1","主题2","主题3"]}'
-            )
-            structured_answer = ask_youmind(
-                question=structured_prompt,
-                board_url=url,
-                headless=not show_browser,
-            )
-            if not structured_answer:
-                raise RuntimeError("Smart Add discovery failed: could not get board answer.")
-            structured_answer = self._clean_discovery_answer(structured_answer)
-            metadata = self._metadata_from_discovery(structured_answer, url)
-            discovery_used = "single_pass_structured"
-        else:
+        def run_two_pass():
+            nonlocal summary_answer, structured_answer
             summary_answer = ask_youmind(
                 question=summary_prompt,
                 board_url=url,
@@ -340,11 +326,10 @@ class BoardLibrary:
             )
             if not summary_answer:
                 raise RuntimeError("Smart Add discovery failed at pass 1 (summary).")
-            summary_answer = self._clean_discovery_answer(summary_answer)
+            summary_clean = self._clean_discovery_answer(summary_answer)
+            summary_answer = summary_clean
 
-            compact_summary = re.sub(r"\s+", " ", summary_answer).strip()
-            compact_summary = compact_summary[:1500]
-
+            compact_summary = re.sub(r"\s+", " ", summary_clean).strip()[:1500]
             structured_prompt = (
                 json_prompt
                 or (
@@ -359,17 +344,37 @@ class BoardLibrary:
                 headless=not show_browser,
             )
             if structured_answer:
-                structured_answer = self._clean_discovery_answer(structured_answer)
-                payload = self._extract_json_block(structured_answer)
+                structured_clean = self._clean_discovery_answer(structured_answer)
+                structured_answer = structured_clean
+                payload = self._extract_json_block(structured_clean)
                 if payload:
-                    metadata = self._metadata_from_discovery(structured_answer, url)
-                    discovery_used = "two_pass_json"
+                    return self._metadata_from_discovery(structured_clean, url), "two_pass_json"
+            return self._metadata_from_discovery(summary_clean, url), "two_pass_fallback_summary"
+
+        if single_pass:
+            structured_prompt = (
+                json_prompt
+                or '请阅读当前board，返回严格JSON（不要额外文字）：'
+                ' {"name":"简洁名称","description":"1-2句描述","topics":["主题1","主题2","主题3"]}'
+            )
+            structured_answer = ask_youmind(
+                question=structured_prompt,
+                board_url=url,
+                headless=not show_browser,
+            )
+            if structured_answer:
+                structured_answer = self._clean_discovery_answer(structured_answer)
+                metadata = self._metadata_from_discovery(structured_answer, url)
+                if metadata.get("topics"):
+                    discovery_used = "single_pass_structured"
                 else:
-                    metadata = self._metadata_from_discovery(summary_answer, url)
-                    discovery_used = "two_pass_fallback_summary"
+                    metadata, discovery_used = run_two_pass()
+                    discovery_used = "single_pass_then_" + discovery_used
             else:
-                metadata = self._metadata_from_discovery(summary_answer, url)
-                discovery_used = "two_pass_fallback_summary"
+                metadata, discovery_used = run_two_pass()
+                discovery_used = "single_pass_then_" + discovery_used
+        else:
+            metadata, discovery_used = run_two_pass()
 
         if not metadata.get("topics"):
             raise RuntimeError("Smart Add failed: metadata topics are empty.")
@@ -536,7 +541,19 @@ def main():
     smart_add_parser.add_argument("--show-browser", action="store_true", help="Show browser for discovery")
     smart_add_parser.add_argument("--prompt", help="Custom summary prompt (pass 1)")
     smart_add_parser.add_argument("--json-prompt", help="Custom JSON prompt (pass 2)")
-    smart_add_parser.add_argument("--single-pass", action="store_true", help="Use one-pass structured discovery")
+    smart_add_parser.add_argument(
+        "--single-pass",
+        dest="single_pass",
+        action="store_true",
+        help="Use one-pass structured discovery (default)",
+    )
+    smart_add_parser.add_argument(
+        "--two-pass",
+        dest="single_pass",
+        action="store_false",
+        help="Use two-pass discovery (summary + structured extraction)",
+    )
+    smart_add_parser.set_defaults(single_pass=True)
     smart_add_parser.add_argument("--no-activate", action="store_true", help="Do not set new board as active")
     smart_add_parser.add_argument(
         "--allow-duplicate-url",
