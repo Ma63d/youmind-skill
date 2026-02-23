@@ -24,6 +24,7 @@ from auth_manager import AuthManager
 from board_manager import BoardLibrary
 from browser_utils import BrowserFactory, StealthUtils
 from config import (
+    NEW_CHAT_BUTTON_SELECTORS,
     QUERY_TIMEOUT_SECONDS,
     QUERY_INPUT_SELECTORS,
     RESPONSE_SELECTORS,
@@ -252,6 +253,21 @@ def _find_input_selector(page) -> Optional[str]:
     return None
 
 
+def _click_new_chat_button(page) -> bool:
+    """Start a fresh chat by clicking the New Chat button."""
+    for selector in NEW_CHAT_BUTTON_SELECTORS:
+        try:
+            page.wait_for_selector(selector, timeout=5000, state="visible")
+            if StealthUtils.realistic_click(page, selector):
+                return True
+            # Fallback: direct forced click when synthetic click is blocked by overlays/animations.
+            page.click(selector, timeout=3000, force=True)
+            return True
+        except Exception:
+            continue
+    return False
+
+
 def ask_youmind(
     question: str,
     board_url: str,
@@ -285,6 +301,14 @@ def ask_youmind(
         if "youmind.com" not in page.url or "sign-in" in page.url:
             print("  ❌ Redirected to sign-in. Authentication may be expired.")
             return None
+
+        print("  🆕 Starting a new chat...")
+        if not _click_new_chat_button(page):
+            print("  ❌ Could not click New Chat button (#new-chat-button)")
+            return None
+
+        # Give UI a moment to open the fresh chat panel before querying.
+        time.sleep(0.5)
 
         # Snapshot previous conversation to ensure we only return post-submit output.
         previous_sequence = _collect_conversation_sequence(page)

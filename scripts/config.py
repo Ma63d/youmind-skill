@@ -41,6 +41,10 @@ SEND_BUTTON_SELECTORS = [
     "button[class*='send']",
 ]
 
+NEW_CHAT_BUTTON_SELECTORS = [
+    "#new-chat-button",
+]
+
 RESPONSE_SELECTORS = [
     "div.ym-askai-container[data-pick-selection-message-id]",
     "div.ym-askai-container",
