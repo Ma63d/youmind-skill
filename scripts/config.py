@@ -45,6 +45,32 @@ NEW_CHAT_BUTTON_SELECTORS = [
     "#new-chat-button",
 ]
 
+# Create board selectors
+CREATE_BOARD_BUTTON_SELECTORS = [
+    "button[data-testid*='create-board']",
+    "button[aria-label*='Create board']",
+    "button:has-text('Create')",
+    "button:has-text('新建')",
+    "[data-testid*='new-board']",
+    "a[href*='create']",
+]
+
+BOARD_NAME_INPUT_SELECTORS = [
+    "input[placeholder*='board name']",
+    "input[placeholder*='Board name']",
+    "input[name*='name']",
+    "input[data-testid*='board-name']",
+    "input[aria-label*='name']",
+]
+
+CREATE_BOARD_SUBMIT_SELECTORS = [
+    "button[type='submit']",
+    "button:has-text('Create')",
+    "button:has-text('创建')",
+    "button[data-testid*='submit']",
+    "button[aria-label*='Create']",
+]
+
 RESPONSE_SELECTORS = [
     "div.ym-askai-container[data-pick-selection-message-id]",
     "div.ym-askai-container",

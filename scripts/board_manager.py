@@ -648,6 +648,218 @@ class BoardLibrary:
         self._save_library()
         return stats
 
+    def create_board(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        show_browser: bool = False,
+        auto_add: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Create a new Youmind board via browser automation.
+        
+        Returns the new board info including URL.
+        """
+        import time
+        import sys
+        from pathlib import Path
+        
+        sys.path.insert(0, str(Path(__file__).parent))
+        
+        from auth_manager import AuthManager
+        from browser_utils import BrowserFactory, StealthUtils
+        from config import (
+            CREATE_BOARD_BUTTON_SELECTORS,
+            BOARD_NAME_INPUT_SELECTORS,
+            CREATE_BOARD_SUBMIT_SELECTORS,
+            YOUMIND_OVERVIEW_URL,
+        )
+        from patchright.sync_api import sync_playwright
+        
+        auth = AuthManager()
+        if not auth.is_authenticated():
+            raise RuntimeError("Not authenticated. Run: auth_manager.py setup")
+        
+        print(f"🆕 Creating new board: {name}")
+        
+        playwright = None
+        context = None
+        
+        try:
+            playwright = sync_playwright().start()
+            context = BrowserFactory.launch_persistent_context(playwright, headless=not show_browser)
+            page = context.new_page()
+            
+            print("  🌐 Opening Youmind overview...")
+            page.goto(YOUMIND_OVERVIEW_URL, wait_until="domcontentloaded")
+            
+            # Check if redirected to sign-in
+            if "sign-in" in page.url:
+                raise RuntimeError("Authentication expired. Please re-authenticate.")
+            
+            print("  🔍 Looking for create board button...")
+            
+            # Find and click create board button
+            create_btn_clicked = False
+            for selector in CREATE_BOARD_BUTTON_SELECTORS:
+                try:
+                    btn = page.wait_for_selector(selector, timeout=5000, state="visible")
+                    if btn:
+                        StealthUtils.realistic_click(page, selector)
+                        create_btn_clicked = True
+                        print(f"  ✓ Clicked create button: {selector}")
+                        break
+                except Exception:
+                    continue
+            
+            if not create_btn_clicked:
+                # Try to find any button with "Create" or "新建" text
+                try:
+                    btn = page.query_selector("button:has-text('Create'), button:has-text('新建'), button:has-text('New')")
+                    if btn:
+                        StealthUtils.realistic_click(page, "button:has-text('Create'), button:has-text('新建'), button:has-text('New')")
+                        create_btn_clicked = True
+                        print("  ✓ Clicked create button (fallback)")
+                except Exception:
+                    pass
+            
+            if not create_btn_clicked:
+                raise RuntimeError("Could not find create board button")
+            
+            # Wait for dialog/form to appear
+            time.sleep(1.5)
+            
+            print("  ✏️ Entering board name...")
+            
+            # Find and fill board name input
+            name_input_found = False
+            for selector in BOARD_NAME_INPUT_SELECTORS:
+                try:
+                    input_el = page.wait_for_selector(selector, timeout=5000, state="visible")
+                    if input_el:
+                        StealthUtils.human_type(page, selector, name)
+                        name_input_found = True
+                        print(f"  ✓ Entered name: {selector}")
+                        break
+                except Exception:
+                    continue
+            
+            if not name_input_found:
+                # Try generic input
+                try:
+                    inputs = page.query_selector_all("input[type='text'], input:not([type])")
+                    for inp in inputs:
+                        if inp.is_visible():
+                            inp.click()
+                            inp.fill(name)
+                            name_input_found = True
+                            print("  ✓ Entered name (fallback)")
+                            break
+                except Exception:
+                    pass
+            
+            if not name_input_found:
+                raise RuntimeError("Could not find board name input field")
+            
+            time.sleep(0.5)
+            
+            # Find and click submit/create button
+            print("  📤 Submitting...")
+            submit_clicked = False
+            for selector in CREATE_BOARD_SUBMIT_SELECTORS:
+                try:
+                    btn = page.wait_for_selector(selector, timeout=3000, state="visible")
+                    if btn:
+                        StealthUtils.realistic_click(page, selector)
+                        submit_clicked = True
+                        print(f"  ✓ Clicked submit: {selector}")
+                        break
+                except Exception:
+                    continue
+            
+            if not submit_clicked:
+                # Try pressing Enter
+                try:
+                    page.keyboard.press("Enter")
+                    submit_clicked = True
+                    print("  ✓ Submitted with Enter key")
+                except Exception:
+                    pass
+            
+            if not submit_clicked:
+                raise RuntimeError("Could not find submit button")
+            
+            # Wait for navigation to new board
+            print("  ⏳ Waiting for board creation...")
+            time.sleep(3)
+            
+            # Wait for URL to change to board URL
+            deadline = time.time() + 15
+            new_board_url = None
+            
+            while time.time() < deadline:
+                current_url = page.url
+                if "/boards/" in current_url and "overview" not in current_url:
+                    new_board_url = current_url
+                    break
+                time.sleep(0.5)
+            
+            if not new_board_url:
+                # Check if there's a success indicator
+                # Sometimes the page doesn't redirect immediately
+                current_url = page.url
+                if "/overview" in current_url:
+                    # Try to find the newly created board in the list
+                    # and navigate to it
+                    print("  🔍 Looking for newly created board...")
+                    # Wait a bit more for the board to appear
+                    time.sleep(2)
+                new_board_url = page.url
+            
+            print(f"  ✅ Board created!")
+            print(f"  🌐 URL: {new_board_url}")
+            
+            result = {
+                "status": "created",
+                "name": name,
+                "url": new_board_url,
+                "description": description or "",
+            }
+            
+            # Optionally add to local library
+            if auto_add and "/boards/" in new_board_url:
+                topics = ["youmind", "board"]
+                board = self.add_board(
+                    url=new_board_url,
+                    name=name,
+                    description=description or f"Youmind board created via CLI",
+                    topics=topics,
+                )
+                result["board_id"] = board["id"]
+                result["added_to_library"] = True
+                
+                # Set as active if it's the first board
+                if len(self.boards) == 1 or not self.active_board_id:
+                    self.activate_board(board["id"])
+            
+            return result
+            
+        except Exception as e:
+            print(f"  ❌ Error: {e}")
+            raise
+            
+        finally:
+            if context:
+                try:
+                    context.close()
+                except Exception:
+                    pass
+            if playwright:
+                try:
+                    playwright.stop()
+                except Exception:
+                    pass
+
 
 def main():
     parser = argparse.ArgumentParser(description="Manage Youmind board library")
@@ -733,6 +945,13 @@ def main():
         action="store_true",
         help="Preview changes without applying",
     )
+
+    # Create command
+    create_parser = subparsers.add_parser("create", help="Create a new board on Youmind")
+    create_parser.add_argument("--name", "-n", required=True, help="Board name")
+    create_parser.add_argument("--description", "-d", help="Board description")
+    create_parser.add_argument("--show-browser", action="store_true", help="Show browser during creation")
+    create_parser.add_argument("--no-add", action="store_true", help="Do not add created board to local library")
 
     args = parser.parse_args()
     library = BoardLibrary()
@@ -838,6 +1057,30 @@ def main():
             return 1
         except Exception as e:
             print(f"❌ Import failed: {e}")
+            return 1
+
+    elif args.command == "create":
+        try:
+            result = library.create_board(
+                name=args.name,
+                description=args.description,
+                show_browser=args.show_browser,
+                auto_add=not args.no_add,
+            )
+            print("\n" + "=" * 60)
+            print("✅ Board Created Successfully!")
+            print("=" * 60)
+            print(f"Name: {result['name']}")
+            print(f"URL: {result['url']}")
+            if result.get('board_id'):
+                print(f"Library ID: {result['board_id']}")
+                print("Added to local library: Yes")
+            print("=" * 60)
+        except RuntimeError as e:
+            print(f"\n❌ {e}")
+            return 1
+        except Exception as e:
+            print(f"\n❌ Failed to create board: {e}")
             return 1
 
     else:

@@ -78,6 +78,38 @@ python scripts/run.py board_manager.py add \
   --topics "topic1,topic2"
 ```
 
+### 0.5 Create New Board (New!)
+
+Create a new board directly on Youmind via browser automation:
+
+```bash
+# Create a simple board
+python scripts/run.py board_manager.py create --name "My Research Board"
+
+# Create with description
+python scripts/run.py board_manager.py create \
+  --name "AI Papers" \
+  --description "Collection of AI research papers"
+
+# Create and show browser for debugging
+python scripts/run.py board_manager.py create \
+  --name "My Board" \
+  --show-browser
+
+# Create but don't auto-add to local library
+python scripts/run.py board_manager.py create \
+  --name "Temp Board" \
+  --no-add
+```
+
+The `create` command will:
+1. Open Youmind overview page
+2. Click the "Create Board" button
+3. Enter the board name (and optional description)
+4. Submit the form
+5. Capture the new board URL
+6. Automatically add it to your local library (unless `--no-add`)
+
 ### 1. Check Authentication
 
 ```bash
@@ -119,6 +151,15 @@ python scripts/run.py board_manager.py activate --id board-id
 
 # Remove board
 python scripts/run.py board_manager.py remove --id board-id
+
+# Create a new board on Youmind (requires authentication)
+python scripts/run.py board_manager.py create --name "My New Board"
+
+# Create with description and show browser
+python scripts/run.py board_manager.py create \
+  --name "Research Notes" \
+  --description "Collection of research materials" \
+  --show-browser
 ```
 
 ### 4. Ask Board Chat
