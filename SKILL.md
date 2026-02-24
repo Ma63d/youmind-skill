@@ -1,13 +1,55 @@
 ---
 name: youmind
-description: Use this skill to query Youmind boards directly from Claude/Codex via browser automation, with persistent authentication and a local board library. Supports board Q&A and adding links/materials to a board via chat actions. Trigger when users mention Youmind, share a board URL (https://youmind.com/boards/...), ask to chat with board materials, ask to save/add a link into a board, or request board management.
+description: Query YouMind boards, ask questions about board content, add materials to boards, or manage your board library. Use when user mentions YouMind, shares a board URL (https://youmind.com/boards/...), asks to chat with their board materials, or wants to save/add a link to a YouMind board.
 ---
 
 # Youmind Research Assistant Skill
 
-Interact with Youmind board chat from CLI tools through browser automation. Each query opens a fresh browser session, asks one question, returns the answer, then closes.
+Interact with Youmind board chat through browser automation. Each query opens a fresh browser session, asks one question, returns the answer, then closes.
 
-## Critical Rule: Always Use `run.py`
+## Runtime Detection
+
+Before running any command, identify your environment:
+
+**OpenClaw agent** (has `browser` tool + `web_fetch` tool):
+→ Use the [OpenClaw Browser Path](#openclaw-browser-path) below. Do NOT call python scripts.
+
+**CLI agent (Claude Code / Codex)** (has shell access):
+→ Use the [CLI Path](#cli-path) with `python scripts/run.py`.
+
+## OpenClaw Browser Path
+
+OpenClaw has a managed browser already logged into YouMind. Use it directly.
+
+### Query a board
+Use `browser` tool to navigate to the board URL and interact with chat:
+
+1. Navigate to `https://youmind.com/boards/{board_id}`
+2. Wait for chat interface to load
+3. Click the chat input field
+4. Type the question
+5. Submit and wait for response
+6. Extract the answer text
+
+The browser is already authenticated — no auth setup needed.
+
+### Add a material
+Navigate to the board → use chat input to send add command like:
+```
+Add this link to my board: https://example.com
+```
+
+### Board library
+Maintain board URLs in a local memory file (e.g., `memory/youmind-boards.md`).
+No python scripts needed.
+
+---
+
+## CLI Path
+
+For CLI environments (Claude Code, Codex, etc.) with shell access:
+
+### Critical Rule: Always Use `run.py`
 
 Never call scripts directly. Always run:
 
