@@ -1,14 +1,14 @@
 <div align="center">
 
-# Youmind Claude Code Skill
+# Youmind AI Agent Skill
 
-**Let [Claude Code](https://github.com/anthropics/claude-code) and Codex chat directly with your Youmind boards**
+**Let your AI agent chat directly with your Youmind boards**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-purple.svg)](https://www.anthropic.com/news/skills)
+[![AI Agent Skill](https://img.shields.io/badge/AI%20Agent-Skill-purple.svg)](https://github.com/p697/youmind-skill)
 [![GitHub](https://img.shields.io/github/stars/p697/youmind-skill?style=social)](https://github.com/p697/youmind-skill)
 
-> Use this skill to query Youmind board chat directly from Claude Code/Codex. Browser automation, persistent auth, board library management, and NotebookLM-style Smart Add auto naming.
+> Use this skill to query Youmind board chat directly from any AI agent with shell access — Claude Code, Codex, OpenClaw, and more. Browser automation, persistent auth, board library management, and NotebookLM-style Smart Add auto naming.
 
 [Installation](#installation) • [Quick Start](#quick-start) • [Why Youmind](#why-youmind-not-manual-copy-paste) • [How It Works](#how-it-works)
 
@@ -18,10 +18,11 @@
 
 ## Important: Local CLI Only
 
-This skill is designed for local CLI agents (Claude Code / Codex), not sandboxed web chat environments.
+This skill is designed for local AI agents with shell/exec access (Claude Code, Codex, OpenClaw, etc.), not sandboxed web chat environments.
 
 It requires:
-- Local browser automation
+- Shell access to run Python scripts
+- Local browser automation (Patchright/Chrome)
 - Local auth persistence
 - Local filesystem state under `data/`
 
@@ -68,15 +69,21 @@ No manual copy-paste loop.
 
 ## Installation
 
-```bash
-# 1. Create skills directory (if needed)
-mkdir -p ~/.claude/skills
+### Claude Code / Codex
 
-# 2. Clone repository
+```bash
+mkdir -p ~/.claude/skills
 cd ~/.claude/skills
 git clone https://github.com/p697/youmind-skill.git
+cd youmind-skill
+```
 
-# 3. Enter skill directory
+### OpenClaw
+
+```bash
+mkdir -p ~/.openclaw/workspace/skills
+cd ~/.openclaw/workspace/skills
+git clone https://github.com/p697/youmind-skill.git
 cd youmind-skill
 ```
 
@@ -88,7 +95,7 @@ On first real use, the skill auto-creates `.venv`, installs dependencies, and in
 
 ### 1. Check available skills
 
-Say in Claude Code/Codex:
+Say to your AI agent:
 
 ```text
 What skills do I have?

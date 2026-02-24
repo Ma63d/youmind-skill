@@ -1,11 +1,22 @@
 ---
 name: youmind
-description: Use this skill to query Youmind boards directly from Claude/Codex via browser automation, with persistent authentication and a local board library. Supports board Q&A and adding links/materials to a board via chat actions. Trigger when users mention Youmind, share a board URL (https://youmind.com/boards/...), ask to chat with board materials, ask to save/add a link into a board, or request board management.
+description: Use this skill to query Youmind boards directly via browser automation, with persistent authentication and a local board library. Supports board Q&A and adding links/materials to a board via chat actions. Trigger when users mention Youmind, share a board URL (https://youmind.com/boards/...), ask to chat with board materials, ask to save/add a link into a board, or request board management.
 ---
 
 # Youmind Research Assistant Skill
 
-Interact with Youmind board chat from CLI tools through browser automation. Each query opens a fresh browser session, asks one question, returns the answer, then closes.
+Interact with Youmind board chat through browser automation. Each query opens a fresh browser session, asks one question, returns the answer, then closes.
+
+**Compatible with:** Claude Code, Codex, OpenClaw, and any AI agent with shell access.
+
+## Prerequisites
+
+This skill requires a local runtime environment:
+- Shell/exec access to run Python scripts
+- Local filesystem for auth state and board library (`data/`)
+- A browser runtime (Patchright/Chrome, auto-installed on first run)
+
+> **Working directory:** All commands below assume the current directory is the skill root (where this `SKILL.md` lives). If your agent uses a different working directory, prefix commands with `cd <skill_dir> &&`.
 
 ## Critical Rule: Always Use `run.py`
 
